@@ -1,0 +1,44 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  mlx:
+    address: ":11432"
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  docker:
+    exposedByDefault: false
+    endpoint: "unix:///var/run/docker.sock"
+  file:
+    directory: "/etc/traefik"
+    watch: true
+
+log:
+  level: "INFO"
+
+accessLog: {}
+
+tracing:
+  serviceName: "traefik"
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.0
+      - 2.0
+      - 5.0
+      - 10.0
+
+tls:
+  certificates:
+    - certFile: "/certificates/cert.pem"
+      keyFile: "/certificates/key.pem"

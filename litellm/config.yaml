@@ -1,0 +1,40 @@
+model_list:
+  - model_name: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    litellm_params:
+      model: openai/custom
+      api_base: http://mlx-lm:11432/v1  # Internal Docker network hostname
+      api_key: dummy-key
+
+general_settings:
+  # OpenAI compatible endpoints
+  openai_api_base: /v1
+  
+  # Default model when not specified
+  default_model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+  
+  # Routing behavior
+  fallbacks: []
+  routing_strategy: simple-shuffle
+
+  # Logging settings
+  log_level: INFO
+
+# Model routing rules
+router_settings:
+  routing_strategy: usage-based
+  
+  # Model mappings for different providers' APIs
+  model_group_alias:
+    gpt-4-turbo: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    gpt-4: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    gpt-3.5-turbo: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    claude-3-opus: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    claude-3-sonnet: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+
+# Server settings
+server_settings:
+  host: 0.0.0.0
+  port: 11400
+  cors_allow_origins: ["*"]
+  cors_allow_methods: ["*"]
+  cors_allow_headers: ["*"]

@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mlx.address=:11432"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+      - "--tracing.enabled=true"
+      - "--accesslog=true"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443" 
+      - "11432:11432"
+      - "${TRAEFIK_DASHBOARD_PORT:-8080}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/config:/etc/traefik
+      - ./traefik/certificates:/certificates
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+      # Metrics endpoint
+      - "traefik.http.routers.traefik-metrics.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`) && PathPrefix(`/metrics`)"
+      - "traefik.http.routers.traefik-metrics.service=prometheus@internal"
+      - "traefik.http.routers.traefik-metrics.entrypoints=web"
+      # Health checks
+      - "traefik.http.routers.traefik-health.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`) && PathPrefix(`/health`)"
+      - "traefik.http.routers.traefik-health.service=ping@internal"
+      - "traefik.http.routers.traefik-health.entrypoints=web"
+      # Traces
+      - "traefik.http.routers.traefik-traces.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`) && PathPrefix(`/traces`)"
+      - "traefik.http.routers.traefik-traces.entrypoints=web"
+
+  mlx-lm:
+    build:
+      context: .
+      dockerfile: ./mlx-lm.Dockerfile
+    container_name: mlx-lm
+    restart: unless-stopped
+    volumes:
+      - ${HF_CACHE_DIR:-~/.cache/huggingface/hub/}:/root/.cache/huggingface/hub/
+    environment:
+      - MLX_PORT=${MLX_PORT:-11432}
+      - MLX_MODEL=${MLX_MODEL:-mlx-community/Qwen2.5-Coder-32B-Instruct-8bit}
+      - MLX_HOST=0.0.0.0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mlx.rule=Host(`${MLX_HOSTNAME:-mlx.localhost.loc}`)"
+      - "traefik.http.routers.mlx.entrypoints=web"
+      - "traefik.http.services.mlx.loadbalancer.server.port=${MLX_PORT:-11432}"
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    restart: unless-stopped
+    volumes:
+      - ./litellm:/litellm
+    environment:
+      - PORT=${LITELLM_PORT:-11400}
+      - HOST=0.0.0.0
+      - CONFIG_PATH=/litellm/config.yaml
+    labels:
+      - "traefik.enable=true"
+      # HTTP endpoint
+      - "traefik.http.routers.litellm-http.rule=Host(`${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}`)"
+      - "traefik.http.routers.litellm-http.entrypoints=web"
+      - "traefik.http.services.litellm-http.loadbalancer.server.port=${LITELLM_PORT:-11400}"
+      # HTTPS endpoint with TLS offloading
+      - "traefik.http.routers.litellm-https.rule=Host(`${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}`)" 
+      - "traefik.http.routers.litellm-https.entrypoints=websecure"
+      - "traefik.http.routers.litellm-https.tls=true"
+
+volumes:
+  hf_cache:
+    driver: local
