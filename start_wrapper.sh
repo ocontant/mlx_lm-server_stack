@@ -392,17 +392,20 @@ class ServiceManager:
         """
         try:
             # Start MLX service
-            mlx_process = self.start_mlx_service()
+            self.mlx_process = self.start_mlx_service()
 
             # Wait a bit for MLX to start before launching Docker services
             time.sleep(3)
 
-            # Start Docker Compose services
-            docker_process = self.start_docker_compose()
+            # Start Docker Compose services if not skipped
+            if not self.args.skip_docker:
+                self.docker_process = self.start_docker_compose()
+            else:
+                self.logger.info("Docker Compose services skipped")
 
             # Wait for MLX process to complete (will generally run until terminated)
             self.logger.info("Services started successfully. Press Ctrl+C to stop.")
-            mlx_process.wait()
+            self.mlx_process.wait()
 
         except KeyboardInterrupt:
             self.logger.info("Interrupted by user")
