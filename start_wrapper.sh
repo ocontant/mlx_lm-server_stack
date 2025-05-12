@@ -266,7 +266,9 @@ class DependencyManager:
             # Check if virtualenv already exists
             if self.check_virtualenv_exists(venv_name):
                 self.logger.info(f"Virtualenv '{venv_name}' already exists, using it")
-                self.run_command(f"pyenv activate {venv_name}")
+                # Instead of using pyenv activate, which is a shell function
+                # Set PYENV_VERSION environment variable
+                os.environ["PYENV_VERSION"] = venv_name
                 self.state["virtualenv_created"] = True
                 return
 
@@ -281,10 +283,10 @@ class DependencyManager:
                 f"Creating virtualenv '{venv_name}' with Python {python_version}"
             )
             self.run_command(f"pyenv virtualenv {python_version} {venv_name}")
-            self.run_command(f"pyenv activate {venv_name}")
-
+            os.environ["PYENV_VERSION"] = venv_name
             self.state["virtualenv_created"] = True
-            self.logger.info(f"Virtualenv {venv_name} created and activated")
+
+            self.logger.info(f"Virtualenv {venv_name} created successfully.")
         except Exception as e:
             self.logger.error(f"Virtualenv creation failed: {e}")
             sys.exit(1)
