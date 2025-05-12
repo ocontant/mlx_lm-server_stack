@@ -1,6 +1,6 @@
 http:
   middlewares:
-    # Security middleware
+    # Security middleware with enhanced headers
     secureHeaders:
       headers:
         sslRedirect: true
@@ -8,32 +8,71 @@ http:
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 31536000
+        contentTypeNosniff: true               # Prevent MIME-type sniffing
+        browserXssFilter: true                 # Enable XSS protection
+        # referrerPolicy: "strict-origin"        # Stricter referrer policy
+        # permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        # customFrameOptionsValue: "SAMEORIGIN"  # Prevent clickjacking
     
-    # CORS middleware
-    cors:
-      headers:
-        accessControlAllowMethods: "GET,OPTIONS,PUT,POST,DELETE"
-        accessControlAllowHeaders: "*"
-        accessControlAllowOrigin: "*"
+    # CORS middleware with more specific configuration
+    # cors:
+    #   cors:                                    # Nested cors configuration (fixed structure)
+    #     allowMethods:
+    #       - GET
+    #       - OPTIONS
+    #       - PUT
+    #       - POST
+    #       - DELETE
+    #     allowHeaders:
+    #       - "Content-Type"
+    #       - "Authorization"
+    #       - "X-Requested-With"
+    #     allowOriginList:                       # More specific than wildcard
+    #       - "http://localhost:*"
+    #       - "https://localhost:*"
+    #       - "http://*.localhost.loc"
+    #       - "https://*.localhost.loc"
+    #     maxAge: 3600                          # Cache preflight requests
+    #     addVaryHeader: true                   # Better caching behavior
 
-    # Rate limiting middleware
+    # Rate limiting middleware with more granular controls
     rateLimiter:
       rateLimit:
         average: 100
         burst: 50
         period: 1m
+      sourceCriterion:                        # Add IP-based rate limiting
+        ipStrategy:
+          depth: 1
+          excludedIPs:
+            - "127.0.0.1"
+            - "::1"
 
-  # Specify services manually if needed
-  services:
-    mlx-api:
-      loadBalancer:
-        servers:
-          - url: "http://mlx-lm:11432"
+  # Services with health checks and load balancing options
+  # services:
+  #   mlx-api:
+  #     loadBalancer:
+  #       servers:
+  #         - url: "http://mlx-lm:11432"
+  #       healthCheck:
+  #         path: "/health"
+  #         interval: "10s"
+  #         timeout: "3s"
+  #       passHostHeader: true
+  #       responseForwarding:
+  #         flushInterval: "100ms"
 
-    litellm-api:
-      loadBalancer:
-        servers:
-          - url: "http://litellm:11400"
+  #   litellm-api:
+  #     loadBalancer:
+  #       servers:
+  #         - url: "http://litellm:11400"
+  #       healthCheck:
+  #         path: "/health/liveliness"
+  #         interval: "10s"
+  #         timeout: "3s"
+  #       passHostHeader: true
+  #       responseForwarding:
+  #         flushInterval: "100ms"
 
 tls:
   options:
@@ -47,3 +86,6 @@ tls:
         - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
         - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
         - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      curvePreferences:                        # Add curve preferences for better security
+        - "CurveP521"
+        - "CurveP384"

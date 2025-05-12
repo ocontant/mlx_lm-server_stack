@@ -4,25 +4,47 @@ services:
     container_name: traefik
     restart: unless-stopped
     command:
+      - "--providers.file.directory=/etc/traefik/config"
+      - "--providers.file.watch=true"
+      # Dashboard
       - "--api.insecure=true"
+      # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      # Certificates resolver
+      - "--certificatesresolvers.selfsigned.acme.caserver=internal"
+      - "--certificatesresolvers.selfsigned.acme.storage=/etc/traefik/certificates/acme.json"
+      - "--certificatesresolvers.selfsigned.acme.keytype=EC256" 
+      # Entrypoints configuration
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.mlx.address=:11432"
+      # Metrics and tracing
       - "--metrics.prometheus=true"
       - "--metrics.prometheus.addEntryPointsLabels=true"
       - "--metrics.prometheus.addServicesLabels=true"
-      - "--tracing.enabled=true"
+      # - "--tracing.enabled=true"
+      # Health checks
+      # - "--ping=true"
+      # - "--ping.entrypoint=web"
+      # - "--ping.path=/health"
+      # - "--ping.timeout=5s"
+      # - "--ping.interval=30s"
+      # - "--ping.startPeriod=40s"
+      # - "--ping.headers.X-Request-ID=keep"
+      # - "--ping.headers.X-Real-IP=keep"
+      # - "--ping.headers.X-Forwarded-For=keep"
+      # - "--ping.headers.X-Forwarded-Proto=keep"
+      # - "--ping.headers.X-Forwarded-Host=keep"
+      # - "--ping.headers.X-Forwarded-Port=keep"
+      # Logging
       - "--accesslog=true"
       - "--log.level=DEBUG"
-      # Add detailed logging configuration
       - "--log.format=json"
       - "--accesslog.format=json"
       - "--accesslog.fields.headers.names.X-Request-ID=keep"
       - "--accesslog.fields.headers.names.X-Real-IP=keep"
       - "--providers.docker.watch=true"
-      - "--providers.docker.network=litellm-public"
+      - "--providers.docker.network=litellm-public"     
     logging:
       driver: "json-file"
       options:
@@ -33,14 +55,13 @@ services:
         tag: "{{.Name}}/{{.ID}}"
     ports:
       - "80:80"
-      - "443:443" 
-      - "11432:11432"
+      - "443:443"
       - "${TRAEFIK_DASHBOARD_PORT:-8080}:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/config:/etc/traefik
-      - ./traefik/certificates:/certificates
-      - ${LETSENCRYPT_DATA_DIR:-./traefik/letsencrypt}:/letsencrypt
+      - ./traefik/config:/etc/traefik/config
+      - ./traefik/certificates:/etc/traefik/certificates
+      - ${LETSENCRYPT_DATA_DIR:-./traefik/certificates/letsencrypt}:/etc/traefik/certificates/letsencrypt
     networks:
       - litellm-public
     labels:
@@ -60,25 +81,29 @@ services:
       # Traces
       - "traefik.http.routers.traefik-traces.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`) && PathPrefix(`/traces`)"
       - "traefik.http.routers.traefik-traces.entrypoints=web"
-      # MLX-LM Service running on HOST
-      - "traefik.http.routers.mlx.rule=Host(`mlx.localhost.loc`)"
-      - "traefik.http.routers.mlx.entrypoints=web,websecure"
-      - "traefik.http.routers.mlx.tls=true"
-      - "traefik.http.routers.mlx.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mlx.loadbalancer.server.url=http://host.docker.internal:11432"
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
     container_name: litellm
     restart: unless-stopped
     volumes:
-      - ./litellm:/litellm
+      - ./litellm/config.yaml:/app/config.yaml
+    command:
+      - "--config=/app/config.yaml"
+      - "--port=4000"
     environment:
-      - PORT=${LITELLM_PORT:-11400}
+      - LITELLM_PORT=4000
+      - LITELLM_HTTP_HOSTNAME=${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}
+      - LITELLM_HTTP_PORT=${LITELLM_HTTP_PORT:-4000}
+      - LITELLM_HTTP_URL=${LITELLM_HTTP_URL:-http://litellm.localhost.loc:4000}
       - HOST=0.0.0.0
       - CONFIG_PATH=/litellm/config.yaml
       - LOG_LEVEL=DEBUG  # Add explicit log level
       - DEBUG=1  # Enable debug mode
+    networks:
+      - litellm-public
+    ports:
+      - "4000:4000" # HTTP port (fixed: added port mapping)
     logging:
       driver: "json-file"
       options:
@@ -87,23 +112,40 @@ services:
         labels: "litellm-logs"
         env: "os,customer"
         tag: "{{.Name}}/{{.ID}}"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${LITELLM_PORT:-11400}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:4000/health/liveliness"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
     labels:
       - "traefik.enable=true"
       # HTTP endpoint
-      - "traefik.http.routers.litellm-http.rule=Host(`${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}`)"
+      - "traefik.http.routers.litellm-http.rule=Host(`litellm.localhost.loc`)"
       - "traefik.http.routers.litellm-http.entrypoints=web"
-      - "traefik.http.services.litellm-http.loadbalancer.server.port=${LITELLM_PORT:-11400}"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      - "traefik.http.routers.litellm-http.service=litellm"
+      # Anthropic HTTP endpoint
+      - "traefik.http.routers.anthropic-http.rule=Host(`api.anthropic.com`)"
+      - "traefik.http.routers.anthropic-http.entrypoints=web"
+      - "traefik.http.routers.anthropic-http.service=litellm"
       # HTTPS endpoint with TLS offloading
-      - "traefik.http.routers.litellm-https.rule=Host(`${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}`)" 
+      - "traefik.http.routers.litellm-https.rule=Host(`litellm.localhost.loc`)" 
       - "traefik.http.routers.litellm-https.entrypoints=websecure"
-      - "traefik.http.routers.litellm-https.tls=${AUTO_SSL:-false}"
-      - "traefik.http.routers.litellm-https.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.litellm-https.service=litellm"
+      - "traefik.http.routers.litellm-https.tls=true"
+      - "traefik.http.routers.litellm-https.tls.certresolver=selfsigned"
+      # Anthropic HTTPS endpoint
+      - "traefik.http.routers.anthropic-https.rule=Host(`api.anthropic.com`)"
+      - "traefik.http.routers.anthropic-https.entrypoints=websecure"
+      - "traefik.http.routers.anthropic-https.service=litellm"
+      - "traefik.http.routers.anthropic-https.tls=true"
+      - "traefik.http.routers.anthropic-https.tls.certresolver=selfsigned"
+      # Common middleware
+      - "traefik.http.middlewares.litellm-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      # - "traefik.http.routers.litellm-http.middlewares=secureHeaders@file,cors@file"
+      # - "traefik.http.routers.litellm-https.middlewares=secureHeaders@file,cors@file"
+
 networks:
   litellm-public:
     name: litellm-public
@@ -114,6 +156,3 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
     labels: "docker-compose-logs"
-volumes:
-  hf_cache:
-    driver: local

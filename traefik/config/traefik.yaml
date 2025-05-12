@@ -1,8 +1,12 @@
 entryPoints:
   web:
     address: ":80"
+    forwardedHeaders:
+      insecure: true
   websecure:
     address: ":443"
+    forwardedHeaders:
+      insecure: true
 
 api:
   dashboard: true
@@ -12,17 +16,29 @@ providers:
   docker:
     exposedByDefault: false
     endpoint: "unix:///var/run/docker.sock"
+    watch: true
+    network: "litellm-public"
   file:
-    directory: "/etc/traefik"
+    directory: "/etc/traefik/config"
     watch: true
 
 log:
-  level: "INFO"
+  level: "DEBUG"
+  format: "json"
 
-accessLog: {}
+accessLog: 
+  format: "json"
+  bufferingSize: 100
+  filePath: "/dev/stdout"
+  fields:
+    headers:
+      names:
+        X-Request-ID: keep
+        X-Real-IP: keep
 
-tracing:
-  serviceName: "traefik"
+
+# tracing:
+#   serviceName: "traefik"
 
 metrics:
   prometheus:
@@ -36,7 +52,13 @@ metrics:
       - 5.0
       - 10.0
 
-tls:
-  certificates:
-    - certFile: "/certificates/cert.pem"
-      keyFile: "/certificates/key.pem"
+ping:
+  entryPoint: "web"
+  manualRouting: true
+
+certificatesResolvers:
+  selfsigned:
+    acme:
+      caServer: "internal"
+      storage: "/etc/traefik/certificates/acme.json"
+      keyType: "EC256"
