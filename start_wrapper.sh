@@ -591,7 +591,8 @@ def parse_arguments() -> argparse.Namespace:
         argparse.Namespace: Parsed arguments
     """
     parser = argparse.ArgumentParser(
-        description="MLX Explore Wrapper: Setup dependencies and run services"
+        description="MLX Explore Wrapper: Setup dependencies and run services",
+        epilog="Additional commands:\n  --generate-env-template    Generate a template .env file with default values.",
     )
 
     # Environment file option
