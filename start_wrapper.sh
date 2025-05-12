@@ -623,8 +623,8 @@ def parse_arguments() -> argparse.Namespace:
     service_group = parser.add_argument_group("Service Options")
     service_group.add_argument(
         "--model",
-        default="mlx-community/Qwen2.5-Coder-32B-Instruct-8bit",
-        help="MLX model name",
+        default="",
+        help="MLX model name. E.g. 'mlx-community/Qwen2.5-Coder-32B-Instruct-8bit'",
     )
     service_group.add_argument(
         "--host",
@@ -651,7 +651,7 @@ def parse_arguments() -> argparse.Namespace:
     service_group.add_argument(
         "--eos-token",
         default="",
-        help="Custom EOS token",
+        help='Custom EOS token. E.g. "<|endoftext|>"',
     )
     service_group.add_argument(
         "--extra-args",
@@ -710,19 +710,19 @@ def generate_env_template() -> None:
 # Uncomment and modify values as needed
 
 # Dependency Setup Options
-#SKIP_DEPS=false
-#PYTHON_VERSION=3.12.9
-#VENV_NAME=mlx
+SKIP_DEPS=false
+PYTHON_VERSION=3.12.9
+VENV_NAME=mlx-test
 
 # Service Options
-#MODEL=mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
-#HOST=0.0.0.0
-#PORT=11432
-#LOG_LEVEL=INFO
-#TRUST_REMOTE_CODE=false
-#EOS_TOKEN=
-#EXTRA_ARGS=
-#SKIP_DOCKER=false
+MODEL=mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+HOST=127.0.0.1
+PORT=11432
+LOG_LEVEL=INFO
+TRUST_REMOTE_CODE=false
+EOS_TOKEN="<|endoftext|>"
+EXTRA_ARGS=
+SKIP_DOCKER=false
 """
 
     # Check if .env file already exists
