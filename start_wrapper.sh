@@ -51,7 +51,7 @@ def start_mlx_service(args):
 
     print(f"[Wrapper] Starting MLX service on {args.host}:{args.port} with model {args.model}")
     return subprocess.Popen(
-        ["bash", "entrypoint.sh"],
+        ["bash", "mlx_lm-server_start.sh"],
         env=env,
         stdout=sys.stdout,
         stderr=sys.stderr,
