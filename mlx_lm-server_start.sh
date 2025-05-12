@@ -22,11 +22,11 @@ if [[ "$TRUST_REMOTE_CODE" == "true" ]]; then
   ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --trust-remote-code"
 fi
 
-# Add EOS token if specified
-if [[ -n "$EOS_TOKEN" ]]; then
-  echo "Setting custom EOS token: ${EOS_TOKEN}"
-  ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --eos-token \"${EOS_TOKEN}\""
-fi
+# Add EOS token if specified ** Not implemented in mlx_lm.server yet
+# if [[ -n "$EOS_TOKEN" ]]; then
+#   echo "Setting custom EOS token: ${EOS_TOKEN}"
+#   ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --eos-token \"${EOS_TOKEN}\""
+# fi
 
 # Add any extra args
 if [[ -n "$EXTRA_ARGS" ]]; then
@@ -42,10 +42,11 @@ if [[ "$MLX_MODEL" == *"qwen"* ]] || [[ "$MLX_MODEL" == *"Qwen"* ]]; then
     ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --trust-remote-code"
   fi
 
-  if [[ -z "$EOS_TOKEN" ]]; then
-    echo "Setting default EOS token for Qwen model"
-    ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --eos-token \"<|endoftext|>\""
-  fi
+  # mlx_lm.server does not support EOS token yet
+  # if [[ -z "$EOS_TOKEN" ]]; then
+  #   echo "Setting default EOS token for Qwen model"
+  #   ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --eos-token \"<|endoftext|>\""
+  # fi
 fi
 
 if [[ "$MLX_MODEL" == *"plamo"* ]]; then
@@ -59,7 +60,7 @@ fi
 echo "Starting server with additional args: ${ADDITIONAL_ARGS}"
 
 # Start the MLX-LM server with eval to properly handle quoted arguments
-eval "exec python3 -m mlx_lm.server \
+eval "exec bash mlx_lm.server \
   --model \"${MLX_MODEL}\" \
   --host \"${MLX_HOST}\" \
   --port \"${MLX_PORT}\" \
