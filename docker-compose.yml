@@ -15,7 +15,22 @@ services:
       - "--metrics.prometheus.addServicesLabels=true"
       - "--tracing.enabled=true"
       - "--accesslog=true"
-      - "--log.level=INFO"
+      - "--log.level=DEBUG"
+      # Add detailed logging configuration
+      - "--log.format=json"
+      - "--accesslog.format=json"
+      - "--accesslog.fields.headers.names.X-Request-ID=keep"
+      - "--accesslog.fields.headers.names.X-Real-IP=keep"
+      - "--providers.docker.watch=true"
+      - "--providers.docker.network=litellm-public"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "traefik-logs"
+        env: "os,customer"
+        tag: "{{.Name}}/{{.ID}}"
     ports:
       - "80:80"
       - "443:443" 
@@ -26,6 +41,8 @@ services:
       - ./traefik/config:/etc/traefik
       - ./traefik/certificates:/certificates
       - ${LETSENCRYPT_DATA_DIR:-./traefik/letsencrypt}:/letsencrypt
+    networks:
+      - litellm-public
     labels:
       - "traefik.enable=true"
       # Dashboard
@@ -60,6 +77,22 @@ services:
       - PORT=${LITELLM_PORT:-11400}
       - HOST=0.0.0.0
       - CONFIG_PATH=/litellm/config.yaml
+      - LOG_LEVEL=DEBUG  # Add explicit log level
+      - DEBUG=1  # Enable debug mode
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "litellm-logs"
+        env: "os,customer"
+        tag: "{{.Name}}/{{.ID}}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${LITELLM_PORT:-11400}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       # HTTP endpoint
@@ -71,7 +104,17 @@ services:
       - "traefik.http.routers.litellm-https.entrypoints=websecure"
       - "traefik.http.routers.litellm-https.tls=${AUTO_SSL:-false}"
       - "traefik.http.routers.litellm-https.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
+networks:
+  litellm-public:
+    name: litellm-public
+    external: true
 
+# Add logging configuration for docker-compose
+x-logging: &default-logging
+  options:
+    max-size: "10m"
+    max-file: "3"
+    labels: "docker-compose-logs"
 volumes:
   hf_cache:
     driver: local
