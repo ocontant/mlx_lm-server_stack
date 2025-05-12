@@ -628,7 +628,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     service_group.add_argument(
         "--host",
-        default="0.0.0.0",
+        default="127.0.0.1",
         help="MLX service host",
     )
     service_group.add_argument(
