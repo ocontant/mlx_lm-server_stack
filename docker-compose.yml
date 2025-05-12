@@ -45,6 +45,12 @@ services:
       # Traces
       - "traefik.http.routers.traefik-traces.rule=Host(`${TRAEFIK_HOSTNAME:-traefik.localhost.loc}`) && PathPrefix(`/traces`)"
       - "traefik.http.routers.traefik-traces.entrypoints=web"
+      # MLX-LM Service running on HOST
+      - "traefik.http.routers.mlx.rule=Host(`mlx.localhost.loc`)"
+      - "traefik.http.routers.mlx.entrypoints=web,websecure"
+      - "traefik.http.routers.mlx.tls=true"
+      - "traefik.http.routers.mlx.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mlx.loadbalancer.server.url=http://host.docker.internal:11432"
 
   mlx-lm:
     build:
