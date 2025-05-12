@@ -11,9 +11,9 @@ mlx_process = None
 docker_process = None
 
 def clean():
-    print("\n[Wrapper] Cleaning up...")
     global mlx_process, docker_process
-
+    print("\n[Wrapper] Cleaning up...")
+   
     if docker_process and docker_process.poll() is None:
         printf("-"*50)
         print("[Wrapper] Stopping Docker Compose...")
@@ -34,7 +34,7 @@ def clean():
 
 def signal_handler(sig, frame):
     printf("*"*10)
-    print(f"\n[Wrapper] Caught signal: {sig}")
+    print(f"\n[Wrapper] Received signal {sig}, exiting...")
     printf("*"*10)
     clean()
     sys.exit(0)
