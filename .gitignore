@@ -1,3 +1,26 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# External Repos
+.repos/
+
+# Sensible files
+traefik/config/letsencrypt.yaml
+traefik/letsencrypt/
+traefik/certificates/*.pem
+traefik/certificates/*.key
+traefik/certificates/*.crt
+traefik/certificates/*.p12
+traefik/certificates/*.pfx
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -110,15 +133,6 @@ celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject

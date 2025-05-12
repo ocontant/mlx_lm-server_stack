@@ -3,8 +3,6 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
-  mlx:
-    address: ":11432"
 
 api:
   dashboard: true

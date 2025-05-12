@@ -1,0 +1,50 @@
+# Traefik Let's Encrypt Auto SSL Configuration
+# This configuration enables automatic SSL certificate generation through Let's Encrypt
+
+# HTTP Challenge provider
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "your-email@example.com"  # CHANGE THIS to your email address
+      storage: "/letsencrypt/acme.json"
+      httpChallenge:
+        entryPoint: "web"
+
+# DNS Challenge provider (for wildcard certificates)
+# Uncomment and configure as needed
+#  letsencrypt-dns:
+#    acme:
+#      email: "your-email@example.com"  # CHANGE THIS to your email address
+#      storage: "/letsencrypt/acme-dns.json"
+#      dnsChallenge:
+#        provider: cloudflare  # Change to your DNS provider
+#        # Configure environment variables for your DNS provider
+#        # See: https://doc.traefik.io/traefik/https/acme/#providers
+
+# Sample routing configuration for auto-SSL
+# Uncomment and modify as needed for your specific domains
+#http:
+#  routers:
+#    mlx-api-secure:
+#      rule: "Host(`mlx.yourdomain.com`)"
+#      service: "mlx-api"
+#      entryPoints:
+#        - "websecure"
+#      middlewares:
+#        - "secureHeaders"
+#        - "cors"
+#        - "rateLimiter"
+#      tls:
+#        certResolver: "letsencrypt"
+#
+#    litellm-api-secure:
+#      rule: "Host(`litellm.yourdomain.com`)"
+#      service: "litellm-api"
+#      entryPoints:
+#        - "websecure"
+#      middlewares:
+#        - "secureHeaders"
+#        - "cors"
+#        - "rateLimiter"
+#      tls:
+#        certResolver: "letsencrypt"

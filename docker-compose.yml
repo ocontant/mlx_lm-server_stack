@@ -27,6 +27,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/config:/etc/traefik
       - ./traefik/certificates:/certificates
+      - ${LETSENCRYPT_DATA_DIR:-./traefik/letsencrypt}:/letsencrypt
     labels:
       - "traefik.enable=true"
       # Dashboard
@@ -49,6 +50,12 @@ services:
     build:
       context: .
       dockerfile: ./mlx-lm.Dockerfile
+      args:
+        - MLX_LM_REPO=${MLX_LM_REPO:-https://github.com/ml-explore/mlx-lm.git}
+        - MLX_LM_BRANCH=${MLX_LM_BRANCH:-main}
+        - EXTRA_REPO_URL=${EXTRA_REPO_URL:-""}
+        - EXTRA_REPO_BRANCH=${EXTRA_REPO_BRANCH:-main}
+        - EXTRA_REPO_DIR=${EXTRA_REPO_DIR:-/app/extra-repo}
     container_name: mlx-lm
     restart: unless-stopped
     volumes:
@@ -57,11 +64,19 @@ services:
       - MLX_PORT=${MLX_PORT:-11432}
       - MLX_MODEL=${MLX_MODEL:-mlx-community/Qwen2.5-Coder-32B-Instruct-8bit}
       - MLX_HOST=0.0.0.0
+      - TRUST_REMOTE_CODE=${TRUST_REMOTE_CODE:-false}
+      - EOS_TOKEN=${EOS_TOKEN:-""}
+      - EXTRA_ARGS=${EXTRA_ARGS:-""}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mlx.rule=Host(`${MLX_HOSTNAME:-mlx.localhost.loc}`)"
       - "traefik.http.routers.mlx.entrypoints=web"
       - "traefik.http.services.mlx.loadbalancer.server.port=${MLX_PORT:-11432}"
+      # HTTPS with TLS (uncomment when using AUTO_SSL=true)
+      - "traefik.http.routers.mlx-https.rule=Host(`${MLX_HOSTNAME:-mlx.localhost.loc}`)"
+      - "traefik.http.routers.mlx-https.entrypoints=websecure"
+      - "traefik.http.routers.mlx-https.tls=${AUTO_SSL:-false}"
+      - "traefik.http.routers.mlx-https.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -82,7 +97,8 @@ services:
       # HTTPS endpoint with TLS offloading
       - "traefik.http.routers.litellm-https.rule=Host(`${LITELLM_HTTP_HOSTNAME:-litellm.localhost.loc}`)" 
       - "traefik.http.routers.litellm-https.entrypoints=websecure"
-      - "traefik.http.routers.litellm-https.tls=true"
+      - "traefik.http.routers.litellm-https.tls=${AUTO_SSL:-false}"
+      - "traefik.http.routers.litellm-https.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
 
 volumes:
   hf_cache:

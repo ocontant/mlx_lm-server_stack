@@ -13,6 +13,7 @@ The setup includes:
 ## Prerequisites
 
 - Docker and Docker Compose installed
+- Huggingface-cli tools installed
 - Hugging Face models accessible (default: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit)
 - SSL certificates for production use
 
@@ -106,14 +107,6 @@ curl -X POST http://litellm.localhost.loc/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4",
-    "messages": [{"role": "user", "content": "Hello, how are you?"}]
-  }'
-
-# Using Azure OpenAI format
-curl -X POST http://litellm.localhost.loc/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4-turbo",
     "messages": [{"role": "user", "content": "Hello, how are you?"}]
   }'
 

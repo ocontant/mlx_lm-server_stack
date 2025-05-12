@@ -1,14 +1,147 @@
 model_list:
-  - model_name: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+  model_list:
+  # OpenAI Models
+  - model_name: gpt-4o
     litellm_params:
-      model: openai/custom
-      api_base: http://mlx-lm:11432/v1  # Internal Docker network hostname
-      api_key: dummy-key
+      model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+
+  - model_name: gpt-4-turbo
+    litellm_params:
+      model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+
+  - model_name: gpt-4
+    litellm_params:
+      model: mlx-community/QwQ-32B-8bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: mlx-community/Qwen3-30B-A3B-6bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+
+  # xAI (Grok) Models
+  - model_name: grok-3
+    litellm_params:
+      model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "xai"
+      convert_to_openai: true
+
+  - model_name: grok-3-mini
+    litellm_params:
+      model: mlx-community/Mistral-7B-Instruct-v0.3-8bit
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "xai"
+      convert_to_openai: true
+
+  # Anthropic Claude 3 Models
+  - model_name: claude-*
+    litellm_params:
+      model: mlx-community/Mistral-Large-Instruct-2407-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "anthropic"
+      convert_to_openai: true
+
+  # Google Gemini / Gemma
+  - model_name: gemini-2.5-flash*
+    litellm_params:
+      model: mlx-community/gemma-3-12b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
+  
+  - model_name: gemini-2.5-pro*
+    litellm_params:
+      model: mlx-community/gemma-3-27b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
+
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: mlx-community/gemma-3-27b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
+
+  - model_name: gemini-1.5-flash
+    litellm_params:
+      model: mlx-community/gemma-3-12b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
+
+  - model_name: gemma-3-12b
+    litellm_params:
+      model: mlx-community/gemma-3-12b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
+
+  - model_name: gemma-3-27b
+    litellm_params:
+      model: mlx-community/gemma-3-27b-it-qat-8bit 
+      api_base: http://mlx-lm:11432/v1
+      api_key: "not-needed"
+      max_tokens: 8192
+      litellm_provider: "openai"
+      original_api_provider: "google"
+      convert_to_openai: true
 
 general_settings:
-  # OpenAI compatible endpoints
+  # Allow any model name format to be processed
+  allowed_model_names: ["*"]
+  
+  # Enable proxy to handle any requests
   openai_api_base: /v1
   
+  # Allow all API formats to be processed
+  allowed_routes: 
+    - "/v1/chat/completions"
+    - "/v1/completions"
+    - "/v1/models"
+    - "/v1/messages"           # Anthropic format
+    - "/v1/generateContent"    # Google/Gemini format
+    - "/v1/generate"           # Generic generation endpoint
+
   # Default model when not specified
   default_model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
   
@@ -21,16 +154,34 @@ general_settings:
 
 # Model routing rules
 router_settings:
+  post_call_hooks: ["mlx_serialization_fix.mlx_post_call_hook"]
   routing_strategy: usage-based
   
+  api_aliases:
+    # Map Anthropic API endpoints to OpenAI format
+    /v1/messages: /v1/chat/completions
+    # Map Google/Gemini API endpoints
+    /v1/generateContent: /v1/chat/completions
+    # Map other endpoints as needed
+    /v1/generate: /v1/chat/completions
+
   # Model mappings for different providers' APIs
   model_group_alias:
+    gpt-4o: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
     gpt-4-turbo: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
     gpt-4: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
-    gpt-3.5-turbo: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
-    claude-3-opus: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
-    claude-3-sonnet: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
-
+    gpt-3.5-turbo: mlx-community/Qwen3-30B-A3B-6bit
+    grok-3: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+    grok-3-mini: mlx-community/Mistral-7B-Instruct-v0.3-8bit
+    claude-3*: mlx-community/Mistral-Large-Instruct-2407-8bit
+    gemini-2.5-flash*: mlx-community/gemma-3-12b-it-qat-8bit
+    gemini-2.5-pro*: mlx-community/gemma-3-27b-it-qat-8bit
+    gemini-2.5: mlx-community/gemma-3-12b-it-qat-8bit
+    gemini-1.5-pro: mlx-community/gemma-3-27b-it-qat-8bit
+    gemini-1.5-flash: mlx-community/gemma-3-12b-it-qat-8bit
+    gemma-3-12b: mlx-community/gemma-3-12b-it-qat-8bit
+    gemma-3-27b: mlx-community/gemma-3-27b-it-qat-8bit
+    
 # Server settings
 server_settings:
   host: 0.0.0.0
