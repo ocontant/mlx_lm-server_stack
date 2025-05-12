@@ -13,6 +13,7 @@ venv.bak/
 # Sensible files
 traefik/config/letsencrypt.yaml
 traefik/letsencrypt/
+traefik/certificates/
 traefik/certificates/*.pem
 traefik/certificates/*.key
 traefik/certificates/*.crt
