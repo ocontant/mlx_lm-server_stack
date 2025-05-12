@@ -107,7 +107,6 @@ services:
 networks:
   litellm-public:
     name: litellm-public
-    external: true
 
 # Add logging configuration for docker-compose
 x-logging: &default-logging
