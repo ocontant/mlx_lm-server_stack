@@ -60,7 +60,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/config:/etc/traefik/config
-      - ./traefik/certificates:/etc/traefik/certificates
+      - ./traefik/certificates:/etc/traefik/certificates:ro
       - ${LETSENCRYPT_DATA_DIR:-./traefik/certificates/letsencrypt}:/etc/traefik/certificates/letsencrypt
     networks:
       - litellm-public
@@ -140,7 +140,7 @@ services:
       - "traefik.http.routers.anthropic-https.entrypoints=websecure"
       - "traefik.http.routers.anthropic-https.service=litellm"
       - "traefik.http.routers.anthropic-https.tls=true"
-      - "traefik.http.routers.anthropic-https.tls.certresolver=selfsigned"
+      # - "traefik.http.routers.anthropic-https.tls.certresolver=selfsigned"
       # Common middleware
       - "traefik.http.middlewares.litellm-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       # - "traefik.http.routers.litellm-http.middlewares=secureHeaders@file,cors@file"
