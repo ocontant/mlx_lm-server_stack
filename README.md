@@ -1,301 +1,256 @@
-## MLX LM 
+# MLX LM Server
 
-MLX LM is a Python package for generating text and fine-tuning large language
-models on Apple silicon with MLX.
+A Docker-based deployment solution for MLX LM models with Traefik reverse proxy and LiteLLM integration, designed for Apple Silicon.
 
-Some key features include:
+## Overview
 
-* Integration with the Hugging Face Hub to easily use thousands of LLMs with a
-  single command. 
-* Support for quantizing and uploading models to the Hugging Face Hub.
-* [Low-rank and full model
-  fine-tuning](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md)
-  with support for quantized models.
-* Distributed inference and fine-tuning with `mx.distributed`
+This project provides a complete server setup for running MLX LM models with:
 
-The easiest way to get started is to install the `mlx-lm` package:
+- MLX LM server for efficient inference on Apple Silicon
+- Traefik reverse proxy with automatic HTTPS support
+- LiteLLM integration for OpenAI-compatible API endpoints
+- Docker-based orchestration for all components
+- Support for model aliasing (e.g., map "gpt-4" to your local models)
+- Anthropic API emulation for compatibility with Claude clients
 
-**With `pip`**:
+## The wrapper script provides:
 
-```sh
-pip install mlx-lm
+- Automatic dependency installation (pyenv, Python, MLX LM)
+- Environment file generation and management
+- Docker service orchestration (start/stop)
+- Graceful shutdown and cleanup on SIGINT/SIGTERM
+- Consolidated logging from all component
+
+## Quick Start
+
+Usage
+```bash
+./start_wrapper.py -h
+usage: start_wrapper.py [-h] [--env-file ENV_FILE] [--skip-deps]  [--skip-docker] 
+[--python-version PYTHON_VERSION] [--venv-name VENV_NAME] [--model MODEL] [--host HOST] 
+[--port PORT] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--trust-remote-code] 
+[--extra-args EXTRA_ARGS]
+
+--------------------------------------------------------------------------------------------------
+
+MLX Explore Wrapper: Setup dependencies and run services
+
+options:
+  -h, --help                        show this help message and exit
+  --env-file ENV_FILE               Path to environment file (.env)
+
+Dependency Setup Options:
+  --skip-deps                       Skip dependency setup step
+  --python-version PYTHON_VERSION   Python version to use for virtualenv
+  --venv-name VENV_NAME             Name for the virtual environment
+
+Service Options:
+  --model MODEL                     MLX model name. E.g. 'mlx-community/Qwen2.5-Coder-32B-Instruct-8bit'
+  --host HOST                       MLX service host
+  --port PORT                       MLX service port
+  --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL} Log level
+  --trust-remote-code               Enable trust_remote_code
+  --extra-args EXTRA_ARGS           Additional args to pass to mlx_lm-server_start.sh
+  --skip-docker                     Skip starting Docker Compose services
+
+Additional commands: --generate-env-template Generate a template .env file with default values.
+
+--------------------------------------------------------------------------------------------------
 ```
 
-**With `conda`**:
+### Using the Wrapper Script (Recommended)
 
-```sh
-conda install -c conda-forge mlx-lm
-```
-
-### Quick Start
-
-To generate text with an LLM use:
+The wrapper script automates the entire setup process:
 
 ```bash
-mlx_lm.generate --prompt "How tall is Mt Everest?"
+# Generate environment template
+./start_wrapper.py --generate-env-template
+cp .env.example .env # Edit default values + argparse override .env value
+
+# Start with basic configuration (handles everything)
+./start_wrapper.py --model mlx-community/Mistral-7B-Instruct-v0.3-8bit
+
+# Start with advanced options
+./start_wrapper.py \
+  --model mlx-community/Qwen2.5-Coder-32B-Instruct-8bit \
+  --host 127.0.0.1 \
+  --port 11432 \
+  --log-level DEBUG \
+  --trust-remote-code
 ```
 
-To chat with an LLM use:
+
+
+### Manual Setup
+
+If you prefer manual setup:
+
+1. Copy example config and customize:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Generate SSL certificates (choose one method):
+
+   **Option 1: Self-signed certificates for local development**
+
+   ```bash
+   cd tools
+   ./generate_tlscerts.sh -g localhost.loc -a
+   
+   # Add to /etc/hosts
+   echo "127.0.0.1 localhost.loc mlx.localhost.loc litellm.localhost.loc traefik.localhost.loc" | sudo tee -a /etc/hosts
+   ```
+
+   **Option 2: Let's Encrypt automatic SSL (for production)**
+
+   Edit `.env` and set:
+
+   ```bash
+   AUTO_SSL=true
+   CERT_RESOLVER=letsencrypt
+   ```
+
+   Update the email address in `traefik/config/letsencrypt.yaml`
+
+   Update traefik route in `docker-compose.yml`
+
+   ```yaml
+   services:
+      traefik:
+         # ... other configurations ...
+         command:
+            # ... other commands ...
+            - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
+            - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme/acme.json"
+            - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+            - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+   ```
+
+   ```yaml
+   litellm:
+    labels:
+      # To redirect Anthropic HTTPS endpoint to local API mlx-server
+      - "traefik.http.routers.anthropic-https.rule=Host(`api.anthropic.com`)"
+      - "traefik.http.routers.anthropic-https.entrypoints=websecure"
+      - "traefik.http.routers.anthropic-https.service=litellm"
+      - "traefik.http.routers.anthropic-https.tls=true"
+      - "traefik.http.routers.anthropic-https.tls.certresolver=letsencrypt"
+   ```
+
+3. Start the services:
+
+   #### Example starting using argparser to start the wrapper with the following options:
+
+   ```bash
+      ./start_wrapper.py --venv-name mlx-test --model mlx-community/Llama-4-Scout-17B-16E-Instruct-8bit --host 127.0.0.1 --port 11432 --log-level DEBUG
+   ```
+   
+   #### You can also rely on .env to define parameters
+
+   ```bash
+      ./start_wrapper.py
+   ```
+   
+   #### For special model families that need additional params
+
+   ```bash
+      ./start_wrapper.py --venv-name mlx-test --model mlx-community/Qwen2.5-Coder-32B-Instruct-8bit --host 127.0.0.1 --port 11432 --trust-remote-code --log-level DEBUG
+   ```
+
+4. Access services:
+
+   - MLX LM API: <https://mlx.localhost.loc> (or your domain)
+   - LiteLLM API: <https://litellm.localhost.loc> (or your domain)
+   - Traefik dashboard: <http://traefik.localhost.loc:8080>
+
+## Configuration
+
+### Environment Variables
+
+Key environment variables in `.env`:
+
+- `MLX_MODEL`: HuggingFace model ID
+- `TRUST_REMOTE_CODE`: Set to "true" for models requiring remote code execution
+- `AUTO_SSL`: Enable/disable automatic SSL with Let's Encrypt
+- `CERT_RESOLVER`: Certificate resolver to use (selfsigned, letsencrypt)
+
+### LiteLLM Configuration
+
+Edit `litellm/config.yaml` to customize:
+
+- Model routing and aliases
+- API endpoint mapping
+- Default models for each API type
+- Custom fallback behaviors
+
+### Special Model Requirements
+
+Some model families require special configuration:
+
+1. **Qwen models**:
+   - Require `trust_remote_code=True` and `eos_token="<|endoftext|>"`
+   {@note: eos_token cannot be passed as parameter to mlx_lm.server at the moment. Client must implement stop token itself for now, or mlx_lm.server return crash error (trap and recover with wrapper.)}
+   - Use with: `MLX_MODEL=mlx-community/Qwen2.5-Coder-14B-Instruct-8bit TRUST_REMOTE_CODE=true`
+
+2. **Other special models**:
+   - See `docs/MODEL_CONFIGS.md` for specific requirements
+
+## Architecture
+
+1. **MLX LM Server** - Core inference engine for Apple Silicon
+2. **Traefik Proxy** - Handles routing, SSL termination, and load balancing
+3. **LiteLLM Service** - Provides OpenAI-compatible API and model routing
+4. **Wrapper Script** - Manages dependencies and process lifecycle
+
+## API Compatibility
+
+The server supports the following API formats:
+
+- **OpenAI-compatible endpoints**: `/v1/chat/completions`, `/v1/completions`, etc.
+- **Anthropic-compatible**: Via API emulation at the same endpoint as Claude
+- **LiteLLM unified API**: For consistent access to multiple model providers
+
+## Certificate Management
 
 ```bash
-mlx_lm.chat
+# Generate self-signed certificates for development
+cd tools
+./generate_tlscerts.sh -g localhost.loc -a
+
+# Generate self-signed certificates for a specific domain
+./generate_tlscerts.sh -g api.example.com -a
+
+# Compare certificates for debugging
+## Configure the cert_config.txt file with the appropriate domain and path to the certificate to compare with
+./compare_certs.sh
 ```
 
-This will give you a chat REPL that you can use to interact with the LLM. The
-chat context is preserved during the lifetime of the REPL.
+## Current Issues
 
-Commands in `mlx-lm` typically take command line options which let you specify
-the model, sampling parameters, and more. Use `-h` to see a list of available
-options for a command, e.g.:
+- **Self-signed SSL for External API Endpoints**: There are challenges with deploying custom self-signed SSL certificates for host-based endpoints like `api.anthropic.com`. This is needed to support agentic tools with hardcoded external API calls by redirecting them to local API and LLM models.
 
-```bash
-mlx_lm.generate -h
-```
+## Roadmap / TODO
 
-### Python API
+- Docker compose down doesn't work during clean() process. Consider to use Docker SDK to have more control, instead of depending on external shell command.
+- Automate registering environment variables to force Node.js to accept self-signed certificates.
+- Integrate SSL self-signed certificate generation via argparse function in the wrapper script.
+- Create a wizard in the wrapper script for Let's Encrypt configuration through argparse.
+- Optional: Integrate observability and instrumentation in the stack.
+- Add support for running a small autocomplete model concurrently (for powerful workstations).
+- In dependencies, generate configuration for Aider, Continue, and other AI coding tools.
+- Add support to download models from within wrapper using huggingface-cli tool.
+- Other interesting logic would be to serve a default model, while a new model is being downloaded.
 
-You can use `mlx-lm` as a module:
+## About MLX
 
-```python
-from mlx_lm import load, generate
+MLX LM is built on [MLX](https://github.com/ml-explore/mlx), a high-performance framework for machine learning on Apple Silicon. For more information about the base MLX LM package, see the [MLX LM GitHub repository](https://github.com/ml-explore/mlx-lm).
 
-model, tokenizer = load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
+## About Litellm
 
-prompt = "Write a story about Einstein"
+Litellm is a lightweight Python library for interacting with large language models (LLMs) and generative AI models. It provides a simple and intuitive interface for calling LLMs and generative AI models, and supports a variety of popular LLMs and generative AI models, including OpenAI, Anthropic,). [litellm GitHub repository](https://github.com/BerriAI/litellm).
 
-messages = [{"role": "user", "content": prompt}]
-prompt = tokenizer.apply_chat_template(
-    messages, add_generation_prompt=True
-)
+## About Traefik
 
-text = generate(model, tokenizer, prompt=prompt, verbose=True)
-```
-
-To see a description of all the arguments you can do:
-
-```
->>> help(generate)
-```
-
-Check out the [generation
-example](https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/examples/generate_response.py)
-to see how to use the API in more detail.
-
-The `mlx-lm` package also comes with functionality to quantize and optionally
-upload models to the Hugging Face Hub.
-
-You can convert models using the Python API:
-
-```python
-from mlx_lm import convert
-
-repo = "mistralai/Mistral-7B-Instruct-v0.3"
-upload_repo = "mlx-community/My-Mistral-7B-Instruct-v0.3-4bit"
-
-convert(repo, quantize=True, upload_repo=upload_repo)
-```
-
-This will generate a 4-bit quantized Mistral 7B and upload it to the repo
-`mlx-community/My-Mistral-7B-Instruct-v0.3-4bit`. It will also save the
-converted model in the path `mlx_model` by default.
-
-To see a description of all the arguments you can do:
-
-```
->>> help(convert)
-```
-
-#### Streaming
-
-For streaming generation, use the `stream_generate` function. This yields
-a generation response object.
-
-For example,
-
-```python
-from mlx_lm import load, stream_generate
-
-repo = "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
-model, tokenizer = load(repo)
-
-prompt = "Write a story about Einstein"
-
-messages = [{"role": "user", "content": prompt}]
-prompt = tokenizer.apply_chat_template(
-    messages, add_generation_prompt=True
-)
-
-for response in stream_generate(model, tokenizer, prompt, max_tokens=512):
-    print(response.text, end="", flush=True)
-print()
-```
-
-#### Sampling
-
-The `generate` and `stream_generate` functions accept `sampler` and
-`logits_processors` keyword arguments. A sampler is any callable which accepts
-a possibly batched logits array and returns an array of sampled tokens.  The
-`logits_processors` must be a list of callables which take the token history
-and current logits as input and return the processed logits. The logits
-processors are applied in order.
-
-Some standard sampling functions and logits processors are provided in
-`mlx_lm.sample_utils`.
-
-### Command Line
-
-You can also use `mlx-lm` from the command line with:
-
-```
-mlx_lm.generate --model mistralai/Mistral-7B-Instruct-v0.3 --prompt "hello"
-```
-
-This will download a Mistral 7B model from the Hugging Face Hub and generate
-text using the given prompt.
-
-For a full list of options run:
-
-```
-mlx_lm.generate --help
-```
-
-To quantize a model from the command line run:
-
-```
-mlx_lm.convert --hf-path mistralai/Mistral-7B-Instruct-v0.3 -q
-```
-
-For more options run:
-
-```
-mlx_lm.convert --help
-```
-
-You can upload new models to Hugging Face by specifying `--upload-repo` to
-`convert`. For example, to upload a quantized Mistral-7B model to the
-[MLX Hugging Face community](https://huggingface.co/mlx-community) you can do:
-
-```
-mlx_lm.convert \
-    --hf-path mistralai/Mistral-7B-Instruct-v0.3 \
-    -q \
-    --upload-repo mlx-community/my-4bit-mistral
-```
-
-Models can also be converted and quantized directly in the
-[mlx-my-repo](https://huggingface.co/spaces/mlx-community/mlx-my-repo) Hugging
-Face Space.
-
-### Long Prompts and Generations 
-
-`mlx-lm` has some tools to scale efficiently to long prompts and generations:
-
-- A rotating fixed-size key-value cache.
-- Prompt caching
-
-To use the rotating key-value cache pass the argument `--max-kv-size n` where
-`n` can be any integer. Smaller values like `512` will use very little RAM but
-result in worse quality. Larger values like `4096` or higher will use more RAM
-but have better quality.
-
-Caching prompts can substantially speedup reusing the same long context with
-different queries. To cache a prompt use `mlx_lm.cache_prompt`. For example:
-
-```bash
-cat prompt.txt | mlx_lm.cache_prompt \
-  --model mistralai/Mistral-7B-Instruct-v0.3 \
-  --prompt - \
-  --prompt-cache-file mistral_prompt.safetensors
-``` 
-
-Then use the cached prompt with `mlx_lm.generate`:
-
-```
-mlx_lm.generate \
-    --prompt-cache-file mistral_prompt.safetensors \
-    --prompt "\nSummarize the above text."
-```
-
-The cached prompt is treated as a prefix to the supplied prompt. Also notice
-when using a cached prompt, the model to use is read from the cache and need
-not be supplied explicitly.
-
-Prompt caching can also be used in the Python API in order to avoid
-recomputing the prompt. This is useful in multi-turn dialogues or across
-requests that use the same context. See the
-[example](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/examples/chat.py)
-for more usage details.
-
-### Supported Models
-
-`mlx-lm` supports thousands of Hugging Face format LLMs. If the model you want to
-run is not supported, file an
-[issue](https://github.com/ml-explore/mlx-lm/issues/new) or better yet,
-submit a pull request.
-
-Here are a few examples of Hugging Face models that work with this example:
-
-- [mistralai/Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
-- [meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf)
-- [deepseek-ai/deepseek-coder-6.7b-instruct](https://huggingface.co/deepseek-ai/deepseek-coder-6.7b-instruct)
-- [01-ai/Yi-6B-Chat](https://huggingface.co/01-ai/Yi-6B-Chat)
-- [microsoft/phi-2](https://huggingface.co/microsoft/phi-2)
-- [mistralai/Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1)
-- [Qwen/Qwen-7B](https://huggingface.co/Qwen/Qwen-7B)
-- [pfnet/plamo-13b](https://huggingface.co/pfnet/plamo-13b)
-- [pfnet/plamo-13b-instruct](https://huggingface.co/pfnet/plamo-13b-instruct)
-- [stabilityai/stablelm-2-zephyr-1_6b](https://huggingface.co/stabilityai/stablelm-2-zephyr-1_6b)
-- [internlm/internlm2-7b](https://huggingface.co/internlm/internlm2-7b)
-- [tiiuae/falcon-mamba-7b-instruct](https://huggingface.co/tiiuae/falcon-mamba-7b-instruct)
-
-Most
-[Mistral](https://huggingface.co/models?library=transformers,safetensors&other=mistral&sort=trending),
-[Llama](https://huggingface.co/models?library=transformers,safetensors&other=llama&sort=trending),
-[Phi-2](https://huggingface.co/models?library=transformers,safetensors&other=phi&sort=trending),
-and
-[Mixtral](https://huggingface.co/models?library=transformers,safetensors&other=mixtral&sort=trending)
-style models should work out of the box.
-
-For some models (such as `Qwen` and `plamo`) the tokenizer requires you to
-enable the `trust_remote_code` option. You can do this by passing
-`--trust-remote-code` in the command line. If you don't specify the flag
-explicitly, you will be prompted to trust remote code in the terminal when
-running the model. 
-
-For `Qwen` models you must also specify the `eos_token`. You can do this by
-passing `--eos-token "<|endoftext|>"` in the command
-line. 
-
-These options can also be set in the Python API. For example:
-
-```python
-model, tokenizer = load(
-    "qwen/Qwen-7B",
-    tokenizer_config={"eos_token": "<|endoftext|>", "trust_remote_code": True},
-)
-```
-
-### Large Models
-
-> [!NOTE]
-    This requires macOS 15.0 or higher to work.
-
-Models which are large relative to the total RAM available on the machine can
-be slow. `mlx-lm` will attempt to make them faster by wiring the memory
-occupied by the model and cache. This requires macOS 15 or higher to
-work.
-
-If you see the following warning message:
-
-> [WARNING] Generating with a model that requires ...
-
-then the model will likely be slow on the given machine. If the model fits in
-RAM then it can often be sped up by increasing the system wired memory limit.
-To increase the limit, set the following `sysctl`:
-
-```bash
-sudo sysctl iogpu.wired_limit_mb=N
-```
-
-The value `N` should be larger than the size of the model in megabytes but
-smaller than the memory size of the machine.
+Traefik is a modern HTTP reverse proxy and load balancer designed for containerized and cloud-native environments. Its dynamic configuration abilities and strong integration with major infrastructure platforms make it a popular choice for microservices architectures. [Traefik](https://github.com/traefik/traefik)
