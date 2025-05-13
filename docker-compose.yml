@@ -123,8 +123,8 @@ services:
       # HTTP endpoint
       - "traefik.http.routers.litellm-http.rule=Host(`litellm.localhost.loc`)"
       - "traefik.http.routers.litellm-http.entrypoints=web"
-      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
       - "traefik.http.routers.litellm-http.service=litellm"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
       # Anthropic HTTP endpoint
       - "traefik.http.routers.anthropic-http.rule=Host(`api.anthropic.com`)"
       - "traefik.http.routers.anthropic-http.entrypoints=web"
@@ -140,9 +140,9 @@ services:
       - "traefik.http.routers.anthropic-https.entrypoints=websecure"
       - "traefik.http.routers.anthropic-https.service=litellm"
       - "traefik.http.routers.anthropic-https.tls=true"
+      - "traefik.http.routers.anthropic-https.tls.options=default"
       # - "traefik.http.routers.anthropic-https.tls.certresolver=selfsigned"
       # Common middleware
-      - "traefik.http.middlewares.litellm-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       # - "traefik.http.routers.litellm-http.middlewares=secureHeaders@file,cors@file"
       # - "traefik.http.routers.litellm-https.middlewares=secureHeaders@file,cors@file"
 
