@@ -1,0 +1,1 @@
+api.anthropic.com:443:../traefik/certificates/anthropic/api.anthropic.com.crt
