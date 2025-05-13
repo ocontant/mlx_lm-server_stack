@@ -797,7 +797,7 @@ def parse_arguments() -> argparse.Namespace:
     service_group.add_argument(
         "--extra-args",
         default="",
-        help="Additional args to pass to mlx_lm-server_start.sh",
+        help="Additional args",
     )
     service_group.add_argument(
         "--skip-docker",
