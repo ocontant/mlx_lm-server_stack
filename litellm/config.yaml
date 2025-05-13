@@ -145,6 +145,7 @@ general_settings:
     - /v1/messages           # Anthropics
     - /v1/generateContent    # Gemini
     - /v1/generate           # Generic
+    - /v1/embeddings
 
   default_model: mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
 
@@ -161,6 +162,7 @@ router_settings:
     /v1/complete: /v1/chat/completions
     /v1/generateContent: /v1/chat/completions
     /v1/generate: /v1/chat/completions
+    /embeddings: /v1/embeddings
 
   model_group_alias:
     # Direct OpenAI/MLX-Community mappings
