@@ -1,0 +1,177 @@
+model_list:
+  - model_name: claude-3-7-sonnet-20250219
+    litellm_params:
+      model: lm_studio/qwen2.5-coder-3b-instruct
+      api_base: http://host.docker.internal:11433
+      api_key: "not-needed"
+      use_in_pass_through: true
+    model_info:
+      health_check_model: qwen2.5-coder-3b
+      health_check_timeout: 30 # OVERRIDE HEALTH CHECK TIMEOUT
+      max_tokens: 8192
+      
+  
+  # # Proxy endpoint for all mlx-community models
+  # - model_name: openai/mlx-community/Mistral-Large-Instruct-2407-8bit
+  #   litellm_params:
+  #     model: openai/mlx-community/Mistral-Large-Instruct-2407-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     convert_to_openai: true
+  #     #custom_llm_provider: proxy_openai
+  
+  # Proxy endpoint for all mlx-community models
+  - model_name: qwen2.5-coder-3b-instruct
+    litellm_params:
+      model: lm_studio/qwen2.5-coder-3b-instruct
+      litellm_provideri: lm_studio
+      api_base: http://host.docker.internal:11433
+      api_key: "not-needed"
+    model_info:
+      max_tokens: 8192
+      health_check_model: lm_studio/qwen2.5-coder-3b-instruct
+      health_check_timeout: 30 # OVERRIDE HEALTH CHECK TIMEOUT
+      
+      # convert_to_openai: true
+      #custom_llm_provider: proxy_openai
+
+  # Mapped aliases for popular OpenAI and other vendors
+  # - model_name: gpt-4o
+  #   litellm_params:
+  #     model: openai/mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+
+  # - model_name: gpt-4-turbo
+  #   litellm_params:
+  #     model: openai/mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+
+  # - model_name: gpt-4
+  #   litellm_params:
+  #     model: openai/mlx-community/QwQ-32B-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+
+  # - model_name: gpt-3.5-turbo
+  #   litellm_params:
+  #     model: openai/mlx-community/Qwen3-30B-A3B-6bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+
+  # - model_name: grok-3
+  #   litellm_params:
+  #     model: openai/mlx-community/Qwen2.5-Coder-32B-Instruct-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: xai
+  #     convert_to_openai: true
+
+  # - model_name: grok-3-mini
+  #   litellm_params:
+  #     model: openai/mlx-community/Mistral-7B-Instruct-v0.3-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: xai
+  #     convert_to_openai: true
+
+  # - model_name: claude-*
+  #   litellm_params:
+  #     model: openai/mlx-community/Mistral-Large-Instruct-2407-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: anthropic
+  #     convert_to_openai: true
+  
+  # - model_name: claude-3-7-sonnet-20250219
+  #   litellm_params:
+  #     model: openai/mlx-community/Mistral-Large-Instruct-2407-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: anthropic
+  #     convert_to_openai: true
+  
+  # - model_name: gemini-2.5-flash*
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-12b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
+
+  # - model_name: gemini-2.5-pro*
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-27b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
+
+  # - model_name: gemini-1.5-pro
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-27b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
+
+  # - model_name: gemini-1.5-flash
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-12b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
+
+  # - model_name: gemma-3-12b
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-12b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
+
+  # - model_name: gemma-3-27b
+  #   litellm_params:
+  #     model: openai/mlx-community/gemma-3-27b-it-qat-8bit
+  #     api_base: http://host.docker.internal:11432/v1
+  #     api_key: "not-needed"
+  #     max_tokens: 8192
+  #     litellm_provider: openai
+  #     original_api_provider: google
+  #     convert_to_openai: true
+  #     supports_system_message: False
