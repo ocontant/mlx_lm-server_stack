@@ -1,0 +1,3 @@
+callback_settings:
+  otel:
+    message_logging: boolean  # OTEL logging callback specific settings
