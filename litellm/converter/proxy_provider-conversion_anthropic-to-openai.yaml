@@ -1,0 +1,72 @@
+# LiteLLM Proxy Configuration for Anthropic to OpenAI/LM Studio Conversion
+# 
+# This configuration sets up a proxy that can:
+# 1. Accept requests in Anthropic format
+# 2. Route them to OpenAI or local LM Studio models
+# 3. Return responses in Anthropic format
+#
+# Usage: litellm --config config_anthropic_adapter.yaml
+
+model_list:
+  # Map Anthropic model names to OpenAI models
+  - model_name: claude-3-opus-20240229
+    litellm_params:
+      model: gpt-4o
+      api_key: ${OPENAI_API_KEY}
+
+  - model_name: claude-3-sonnet-20240229
+    litellm_params:
+      model: gpt-4
+      api_key: ${OPENAI_API_KEY}
+
+  - model_name: claude-3-haiku-20240307
+    litellm_params:
+      model: gpt-3.5-turbo
+      api_key: ${OPENAI_API_KEY}
+
+  # Map Anthropic model names to LM Studio models
+  - model_name: claude-3-sonnet-local
+    litellm_params:
+      model: openai/llama3
+      api_base: http://localhost:1234/v1
+
+  - model_name: claude-3-opus-local
+    litellm_params:
+      model: openai/qwen2-7b
+      api_base: http://localhost:1234/v1
+
+  # Fallback configuration example
+  - model_name: claude-3-sonnet-with-fallback
+    litellm_params:
+      model: openai/llama3
+      api_base: http://localhost:1234/v1
+      fallbacks: [{"model": "gpt-4", "api_key": "${OPENAI_API_KEY}"}]
+
+general_settings:
+  # Set a master key for proxy authentication
+  master_key: ${LITELLM_MASTER_KEY}
+
+  # Route Anthropic /v1/messages endpoint through our adapter
+  pass_through_endpoints:
+    - path: "/v1/messages"
+      target: "adapters.anthropic_to_openai_adapter.anthropic_to_openai_adapter"
+      auth: true # Require authentication
+      headers:
+        content-type: application/json
+        accept: application/json
+
+    # For token counting endpoint (optional)
+    - path: "/v1/messages/count_tokens"
+      target: "adapters.anthropic_to_openai_adapter.anthropic_to_openai_adapter"
+      auth: true
+      headers:
+        content-type: application/json
+        accept: application/json
+
+# Router settings for advanced configurations
+router_settings:
+  # Set default routing strategy (options: simple-shuffle, least-busy, lowest-latency, lowest-cost)
+  routing_strategy: least-busy
+  
+  # Configure fail-open behavior - continue processing even if some calls fail
+  allow_fallbacks: true
